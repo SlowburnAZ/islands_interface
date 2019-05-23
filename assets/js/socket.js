@@ -6,9 +6,9 @@
 //
 // Pass the token on params as below. Or remove it
 // from the params if you are not using authentication.
-import {Socket} from "phoenix"
+import { Socket } from "phoenix"
 
-let socket = new Socket("/socket", {params: {token: window.userToken}})
+let socket = new Socket("/socket", { params: { token: window.userToken } })
 
 // When you connect, you'll often need to authenticate the client.
 // For example, imagine you have an authentication plug, `MyAuth`,
@@ -54,10 +54,50 @@ let socket = new Socket("/socket", {params: {token: window.userToken}})
 // Finally, connect to the socket:
 socket.connect()
 
-// Now that you are connected, you can join channels with a topic:
-let channel = socket.channel("topic:subtopic", {})
-channel.join()
-  .receive("ok", resp => { console.log("Joined successfully", resp) })
-  .receive("error", resp => { console.log("Unable to join", resp) })
+function new_channel(subtopic, screen_name) {
+  return socket.channel("game:" + subtopic, { screen_name: screen_name });
+}
+
+function join(channel) {
+  channel.join()
+    .receive("ok", response => {
+      console.log("Joined successfully!", response)
+    })
+    .receive("error", response => {
+      console.log("Unable to join", response)
+    })
+}
+
+function leave(channel) {
+  channel.leave()
+    .receive("ok", response => {
+      console.log("Left successfully", response)
+    })
+    .receive("error", response => {
+      console.log("Unable to leave", response)
+    })
+}
+
+var game_channel = new_channel("moon", "moon");
+
+join(game_channel);
+
+game_channel.on("said_hello", response => {
+  console.log("Returned Greeting:", response.message)
+})
+
+function say_hello(channel, greeting) {
+  channel.push("hello", { "message": greeting })
+    .receive("ok", response => {
+      console.log("Hello", response.message)
+    })
+    .receive("error", response => {
+      console.log("Unable to say hello to the channel.", response.message)
+    })
+}
+
+setTimeout(() => {
+  say_hello(game_channel, "This is from the 'say_hello' function!")
+}, 5000);
 
 export default socket
